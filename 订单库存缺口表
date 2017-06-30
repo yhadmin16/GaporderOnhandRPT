@@ -1,0 +1,181 @@
+select T1.pk_source pk_source,T2.sumnnum t2sum,T1.pk_group t1pkgroup,T3.sumnnum t3sum,T4.sumnnum t4sum,T5.sumnnum t5sum,T6.sumnnum t6sum,T7.sumnnum t7sum,T8.sumncountnum t8sumcount,T8.sumvbdef1 t8sumvbdef1,T2.t2storecode t2storecode,T3.t3storecode t3storecode,T4.t4storecode t4storecode,T5.t5storecode t5storecode,T6.t6storecode t6storecode,T7.t7storecode t7storecode,T8.t8storecode t8storecode
+from
+(
+select distinct *
+from
+(
+select cmaterialvid pk_source,pk_group  from so_saleorder_b where so_saleorder_b.dr=0
+union all 
+select cmaterialvid bv ,pk_group from ic_invcount_b where ic_invcount_b.dr=0
+union all
+select cinventoryvid asd ,pk_group from to_bill_b where to_bill_b.dr=0
+)
+) T1
+left join (
+select sum(nvl(nnum,0)) sumnnum,ssob.cmaterialvid,osov.name,bs.code t2storecode,ssob.pk_group
+from
+so_saleorder_b ssob
+left join so_saleorder sso
+on
+ssob.csaleorderid = sso.csaleorderid
+
+left join org_stockorg_v osov
+on
+ssob.csendstockorgvid = osov.pk_vid
+
+join bd_stordoc bs
+on ssob.csendstordocid=bs.pk_stordoc
+
+where ssob.dr=0 and substr(sso.dbilldate,1,10)=substr(parameter('billdate'),1,10) and osov.code in (parameter('stororg')) 
+and bs.code in ('711','111') 
+group by
+ssob.cmaterialvid,osov.name,bs.code,ssob.pk_group
+) T2
+on
+T1.pk_source=T2.cmaterialvid 
+
+left join
+(
+select sum(nvl(nnum,0)) sumnnum,iwsb.cmaterialvid,osov.name,bs.code t3storecode,iwsh.pk_org,iwsh.pk_group
+from
+ic_whstrans_b iwsb
+left join ic_whstrans_h iwsh
+on
+iwsb.cspecialhid=iwsh.cspecialhid
+
+left join org_stockorg osov
+on
+iwsh.pk_org = osov.pk_stockorg
+
+join bd_stordoc bs
+on iwsh.cwarehouseid=bs.pk_stordoc
+
+where iwsb.dr=0 and substr(iwsh.dbilldate,1,10)=substr(parameter('billdate'),1,10) and osov.code in (parameter('stororg')) 
+and bs.code in ('711','111')
+group by
+iwsb.cmaterialvid,osov.name,iwsh.pk_org,iwsh.pk_group,bs.code
+) T3
+on
+T1.pk_source=T3.cmaterialvid
+
+left join
+(
+select sum(nvl(nnum,0)) sumnnum,tbb.cinventoryvid,osov.name,bs.code t4storecode,tb.pk_org_v,tbb.pk_group
+from
+to_bill_b tbb
+left join to_bill tb
+on
+tbb.cbillid=tb.cbillid
+
+left join org_stockorg_v osov
+on
+tb.pk_org_v = osov.pk_vid
+
+join bd_stordoc bs
+on tbb.coutstordocid=bs.pk_stordoc
+
+where tbb.dr=0 and substr(tb.dbilldate,1,10)=substr(parameter('billdate'),1,10) and osov.code in (parameter('stororg')) and bs.code in ('711','111')
+
+group by
+tbb.cinventoryvid,osov.name,bs.code,tb.pk_org_v,tbb.pk_group
+) T4
+on
+T1.pk_source=T4.cinventoryvid 
+
+
+left join 
+(
+select sum(nvl(nnum,0)) sumnnum,iglb.cmaterialvid,bs.code t5storecode,oso.name,iglh.pk_org,iglb.pk_group
+from
+ic_generalout_b iglb
+left join ic_generalout_h iglh
+on
+iglb.cgeneralhid=iglh.cgeneralhid
+
+left join org_stockorg oso
+on
+iglh.pk_org = oso.pk_stockorg 
+
+join bd_stordoc bs
+on iglh.cwarehouseid=bs.pk_stordoc
+
+where iglb.dr=0 and substr(iglh.dbilldate,1,10)=substr(parameter('billdate'),1,10) and oso.code in (parameter('stororg'))
+and bs.code in ('711','111')
+group by
+iglb.cmaterialvid,bs.code,oso.name,iglh.pk_org,iglb.pk_group
+) T5
+on
+T1.pk_source=T5.cmaterialvid
+
+left join
+(
+select sum(nvl(nnum,0)) sumnnum,itsb.cmaterialvid,bs.code t6storecode,oso.name,itsh.pk_org,itsb.pk_group
+from
+ic_transin_b itsb
+left join ic_transin_h itsh
+on
+itsb.cgeneralhid=itsh.cgeneralhid
+
+left join org_stockorg oso
+on
+itsh.pk_org = oso.pk_stockorg 
+join bd_stordoc bs
+on itsh.cwarehouseid=bs.pk_stordoc
+
+where itsb.dr=0 and substr(itsh.dbilldate,1,10)=substr(parameter('billdate'),1,10) and oso.code in (parameter('stororg')) and bs.code in ('711','111')
+
+group by
+itsb.cmaterialvid,bs.code,oso.name,itsh.pk_org,itsb.pk_group
+) T6
+on
+T1.pk_source=T6.cmaterialvid
+left join
+(
+select sum(nvl(nnum,0)) sumnnum,ifpb.cmaterialvid,bs.code t7storecode,oso.name,ifph.pk_org,ifpb.pk_group
+from
+ic_finprodin_b ifpb
+left join ic_finprodin_h ifph
+on
+ifpb.cgeneralhid=ifph.cgeneralhid
+
+left join org_stockorg oso
+on
+ifph.pk_org = oso.pk_stockorg 
+
+join bd_stordoc bs
+on ifph.cwarehouseid=bs.pk_stordoc
+
+where ifpb.dr=0 and substr(ifph.dbilldate,1,10)=substr(parameter('billdate'),1,10) and oso.code in (parameter('stororg')) and bs.code in ('711','111')
+
+group by
+ifpb.cmaterialvid,bs.code,oso.name,ifph.pk_org,ifpb.pk_group
+) T7
+on
+T1.pk_source=T7.cmaterialvid
+
+
+left join
+(
+select sum(nvl(ncountnum,0)) sumncountnum,sum(case when(vbdef1='~') then 0 else to_number(nvl(vbdef1,0)) end) sumvbdef1,iicb.cmaterialvid,bs.code t8storecode,oso.name,iich.pk_org,iicb.pk_group
+from
+ic_invcount_b iicb
+left join ic_invcount_h iich
+on
+iicb.cspecialhid=iich.cspecialhid
+
+left join org_stockorg oso
+on
+iich.pk_org = oso.pk_stockorg 
+
+join bd_stordoc bs
+on iich.cwarehouseid=bs.pk_stordoc
+
+where iicb.dr=0 and substr(iich.dbilldate,1,10)=substr(parameter('billdate'),1,10) and oso.code in (parameter('stororg')) 
+
+group by
+iicb.cmaterialvid,bs.code,oso.name,iich.pk_org,iicb.pk_group
+) T8
+on
+T1.pk_source=T8.cmaterialvid
+
+
